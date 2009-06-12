@@ -106,7 +106,11 @@ update_server_params (EmpathyAccountWidgetIrc *settings)
     {
       /* set the first server as CM server */
       EmpathyIrcServer *server = servers->data;
+      McProfile *profile;
+      const gchar *profile_name;
       gchar *address;
+      gchar *network_name;
+      gchar *new_name;
       guint port;
       gboolean ssl;
 
@@ -115,6 +119,11 @@ update_server_params (EmpathyAccountWidgetIrc *settings)
           "port", &port,
           "ssl", &ssl,
           NULL);
+      profile = mc_account_get_profile (settings->account);
+      profile_name = mc_profile_get_display_name (profile);
+      g_object_get (network, "name", &network_name, NULL);
+      new_name = g_strdup_printf ("%s (%s)", profile_name,
+                                  network_name);
 
       DEBUG ("Setting server to %s", address);
       mc_account_set_param_string (settings->account, "server", address);
@@ -122,8 +131,15 @@ update_server_params (EmpathyAccountWidgetIrc *settings)
       mc_account_set_param_int (settings->account, "port", port);
       DEBUG ("Setting use-ssl to %s", ssl ? "TRUE": "FALSE" );
       mc_account_set_param_boolean (settings->account, "use-ssl", ssl);
+      DEBUG ("Setting display name to %s",new_name);
+      mc_account_set_param_string (settings->account, "network_name",
+                                   network_name);
+      mc_account_set_display_name (settings->account, new_name);
 
       g_free (address);
+      g_free (network_name);
+      g_free (new_name);
+      g_object_unref (profile);
     }
   else
     {

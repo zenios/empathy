@@ -663,12 +663,28 @@ accounts_dialog_account_added_cb (EmpathyAccountManager *manager,
 	if (!EMP_STR_EMPTY (account_param)) {
 		McProfile   *profile;
 		const gchar *profile_name;
+		const gchar *protocol_name;
 		gchar       *new_name;
 
 		profile = mc_account_get_profile (account);
 		profile_name = mc_profile_get_display_name (profile);
-		new_name = g_strdup_printf ("%s (%s)", profile_name,
-					    account_param);
+		protocol_name = mc_profile_get_protocol_name (profile);
+		if  (tp_strdiff (protocol_name, "irc")) {
+			new_name = g_strdup_printf ("%s (%s)", profile_name,
+						    account_param);
+		}
+		else
+		{
+			gchar *network_name;
+
+			mc_account_get_param_string (account, "network_name",
+						     &network_name);
+			new_name = g_strdup_printf ("%s (%s)", profile_name,
+						    network_name);
+
+			g_free (network_name);
+		}
+
 
 		DEBUG ("Setting new display name for account %s: '%s'",
 		       mc_account_get_unique_name (account), new_name);
