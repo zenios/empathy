@@ -144,21 +144,37 @@ irc_network_dialog_destroy_cb (GtkWidget *widget,
   GtkTreeModel *model;
   EmpathyIrcNetwork *network;
   gchar *name;
+  GSList *servers;
 
-  /* name could be changed */
   gtk_combo_box_get_active_iter (GTK_COMBO_BOX (settings->combobox_network),
       &iter);
   model = gtk_combo_box_get_model (GTK_COMBO_BOX (settings->combobox_network));
   gtk_tree_model_get (model, &iter, COL_NETWORK_OBJ, &network, -1);
+  servers = empathy_irc_network_get_servers(network);
+  if (g_slist_length (servers) > 0) {
+      /* name could be changed */
+      g_object_get (network, "name", &name, NULL);
+      gtk_list_store_set (GTK_LIST_STORE (model), &iter,
+         COL_NETWORK_NAME, name, -1);
 
-  g_object_get (network, "name", &name, NULL);
-  gtk_list_store_set (GTK_LIST_STORE (model), &iter,
-      COL_NETWORK_NAME, name, -1);
+      update_server_params (settings);
 
-  update_server_params (settings);
+      g_free (name);
+  } else {
+      /* remove the created network */
+      gtk_list_store_remove (GTK_LIST_STORE (model), &iter);
+      empathy_irc_network_manager_remove (settings->network_manager, network);
 
+      /* Select the first network */
+      if (gtk_tree_model_get_iter_first (model, &iter)) {
+      gtk_combo_box_set_active_iter (
+           GTK_COMBO_BOX (settings->combobox_network), &iter);
+      }
+  }
+  g_slist_foreach (servers, (GFunc) g_object_unref, NULL);
+  g_slist_free (servers);
   g_object_unref (network);
-  g_free (name);
+
 }
 
 static void
