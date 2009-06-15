@@ -50,6 +50,7 @@ typedef struct {
   GtkWidget *vbox_settings;
 
   GtkWidget *combobox_network;
+  GtkTreeIter activeIter;
 } EmpathyAccountWidgetIrc;
 
 enum {
@@ -150,7 +151,7 @@ irc_network_dialog_destroy_cb (GtkWidget *widget,
       &iter);
   model = gtk_combo_box_get_model (GTK_COMBO_BOX (settings->combobox_network));
   gtk_tree_model_get (model, &iter, COL_NETWORK_OBJ, &network, -1);
-  servers = empathy_irc_network_get_servers(network);
+  servers = empathy_irc_network_get_servers (network);
   if (g_slist_length (servers) > 0) {
       /* name could be changed */
       g_object_get (network, "name", &name, NULL);
@@ -165,10 +166,17 @@ irc_network_dialog_destroy_cb (GtkWidget *widget,
       gtk_list_store_remove (GTK_LIST_STORE (model), &iter);
       empathy_irc_network_manager_remove (settings->network_manager, network);
 
-      /* Select the first network */
-      if (gtk_tree_model_get_iter_first (model, &iter)) {
-      gtk_combo_box_set_active_iter (
-           GTK_COMBO_BOX (settings->combobox_network), &iter);
+      /* check if the activeIter is valid */
+      if (settings->activeIter.stamp != 0) {
+          /*select the last selected network */
+          gtk_combo_box_set_active_iter (
+             GTK_COMBO_BOX (settings->combobox_network), &settings->activeIter);
+      } else {
+          /* Select the first network */
+          if (gtk_tree_model_get_iter_first (model, &iter)) {
+              gtk_combo_box_set_active_iter (
+                  GTK_COMBO_BOX (settings->combobox_network), &iter);
+          }
       }
   }
   g_slist_foreach (servers, (GFunc) g_object_unref, NULL);
@@ -258,6 +266,8 @@ account_widget_irc_button_add_network_clicked_cb (GtkWidget *button,
   empathy_irc_network_manager_add (settings->network_manager, network);
 
   model = gtk_combo_box_get_model (GTK_COMBO_BOX (settings->combobox_network));
+  gtk_combo_box_get_active_iter (GTK_COMBO_BOX (settings->combobox_network),
+                                 &settings->activeIter);
   store = GTK_LIST_STORE (model);
 
   g_object_get (network, "name", &name, NULL);
